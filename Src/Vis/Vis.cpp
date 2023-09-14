@@ -1063,11 +1063,11 @@ bool View::SetObjectAnimation(const Handle &h, bool enable, float time, int loop
     const size_t quat_size = quat.size() / 4;
     if (enable) {
         if (time < 0) {
-            VIS_ERROR(u8"Animation time must > 0, current is {}.", time);
+            VIS_ERROR("Animation time must > 0, current is {}.", time);
             return false;
         }
         if (pos_size != quat_size) {
-            VIS_ERROR(u8"pos size [{}] must match quat size [{}].", pos_size, quat_size);
+            VIS_ERROR("pos size [{}] must match quat size [{}].", pos_size, quat_size);
             return false;
         }
     }
@@ -1096,12 +1096,12 @@ bool View::SetCameraAnimation(bool enable, float time, int loop, const std::vect
     int path_size = 0;
     if (enable) {
         if (time < 0) {
-            VIS_ERROR(u8"Animation time must > 0, current is {}.", time);
+            VIS_ERROR("Animation time must > 0, current is {}.", time);
             return false;
         }
 
         if (eye_size != look_size || look_size != up_size) {
-            VIS_ERROR(u8"eye size [{}] must match look size [{}] and up size [{}].", eye_size,
+            VIS_ERROR("eye size [{}] must match look size [{}] and up size [{}].", eye_size,
                       look_size, up_size);
             return false;
         }
@@ -1141,11 +1141,11 @@ bool View::SetCameraAnimation(bool enable, float time, int loop, const std::vect
     const size_t quat_size = quat.size() / 4;
     if (enable) {
         if (time < 0) {
-            VIS_ERROR(u8"Animation time must > 0, current is {}.", time);
+            VIS_ERROR("Animation time must > 0, current is {}.", time);
             return false;
         }
         if (pos_size != quat_size) {
-            VIS_ERROR(u8"pos size [{}] must match quat size [{}].", pos_size, quat_size);
+            VIS_ERROR("pos size [{}] must match quat size [{}].", pos_size, quat_size);
             return false;
         }
     }
@@ -1951,18 +1951,14 @@ Handle View::Quad2D(const std::vector<float> &xys, const ::std::vector<float> &c
     return Handle();
 }
 
-Handle View::Text(const std::string &content, const std::vector<float> &pos, float font_size, const std::vector<float> &colors)
-{
+Handle View::Text(const std::string &content, const std::vector<float> &pos, float font_size,
+                  const std::vector<float> &colors) {
     Handle h;
-    if(SetText(h, content, pos, font_size, colors))
-    {
+    if (SetText(h, content, pos, font_size, colors)) {
         return h;
-    }
-    else
-    {
+    } else {
         return Handle();
     }
-    
 }
 
 Handle View::Point(const std::vector<float> &xyzs, float ptsize, const std::vector<float> &colors) {
@@ -4087,9 +4083,9 @@ void Vis3d_Command_PlotAxes(Vis3d *pv3, Command *pc) {
         geo->setVertexArray(v);
         geo->setColorArray(c);
         geo->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
-        geo->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES, 0, 2));  // X
-        geo->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES, 2, 2));  // Y
-        geo->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES, 4, 2));  // Z
+        geo->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES, 0, 2));
+        geo->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES, 2, 2));
+        geo->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES, 4, 2));
         geo->getOrCreateStateSet()->setAttribute(new osg::LineWidth(axis_size),
                                                  osg::StateAttribute::ON);
 
@@ -4207,8 +4203,8 @@ void Vis3d_Command_SetText(Vis3d *pv3, Command *pc) {
     }
 
     osg::ref_ptr<osgText::Text> text = (osgText::Text *)drawable;
-    if (!text || drawable->getName().find(u8"Text") == std::string::npos) {
-        VIS_ERROR(u8"Not a text:type: {0}, uid: {1}.", who.type, who.uid);
+    if (!text || drawable->getName().find("Text") == std::string::npos) {
+        VIS_ERROR("Not a text:type: {0}, uid: {1}.", who.type, who.uid);
         pc->ret.b = false;
         return;
     }
@@ -4787,7 +4783,7 @@ void Vis3d_Command_PlotMesh(Vis3d *pv3, Command *pc) {
     // faces exceeds this value. This has the effect of only outlining corners that are sufficiently
     // “sharp”.
     smoother.setCreaseAngle(osg::PI * 0.5);
-    smoother.apply(*geode_mesh);
+    smoother.apply(*geom);
 
     h.type = ViewObjectType_Mesh;
     h.uid = NextHandleID(pv3);
