@@ -25,6 +25,7 @@ endif(WIN32)
 
 find_package(Threads REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 add_subdirectory(Externals)
 
