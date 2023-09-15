@@ -209,16 +209,23 @@ PYBIND11_MODULE(PyVis, m) {
             "colors"_a = std::vector<float>{1.f, 0, 0},
             "Plot 3d point or points. Every 3 values is point position.The unit of size is pixels.")
         .def(
-            "Point",
-            [](View &v, py::array_t<float> xyzs, float ptsize, const std::vector<float> &colors) {
-                auto r = xyzs.unchecked<2>();
-                std::vector<float> xyzs_vec;
-                for (py::ssize_t i = 0; i < r.shape(0); i++)
-                    for (py::ssize_t j = 0; j < r.shape(1); j++) xyzs_vec.push_back(r(i, j));
-                return v.Point(xyzs_vec, ptsize, colors);
-            },
-            "xyzs"_a, "ptsize"_a = 1.0f, "colors"_a = std::vector<float>{1.f, 0, 0},
+            "Point", [] (View& self, const py::array_t<float>& arr, float ptsize, const std::vector<float>& colors) {
+               std::vector<float> xyzs(arr.data(), arr.data() + arr.size());
+               return self.Point(xyzs, ptsize, colors);
+            }, "xyzs"_a, "ptsize"_a = 1.0f,
+            "colors"_a = std::vector<float>{1.f, 0, 0},
             "Plot 3d point or points. Every 3 values is point position.The unit of size is pixels.")
+     //    .def(
+     //        "Point",
+     //        [](View &v, py::array_t<float> xyzs, float ptsize, const std::vector<float> &colors) {
+     //            auto r = xyzs.unchecked<2>();
+     //            std::vector<float> xyzs_vec;
+     //            for (py::ssize_t i = 0; i < r.shape(0); i++)
+     //                for (py::ssize_t j = 0; j < r.shape(1); j++) xyzs_vec.push_back(r(i, j));
+     //            return v.Point(xyzs_vec, ptsize, colors);
+     //        },
+     //        "xyzs"_a, "ptsize"_a = 1.0f, "colors"_a = std::vector<float>{1.f, 0, 0},
+     //        "Plot 3d point or points. Every 3 values is point position.The unit of size is pixels.")
         .def("Line", &View::Line, "lines"_a, "size"_a = 1.0f,
              "colors"_a = std::vector<float>{1.f, 0, 0},
              "Plot line or lines. lines.size() = line_num * 6. Every 6 values is two end points of "
@@ -227,7 +234,7 @@ PYBIND11_MODULE(PyVis, m) {
              py::overload_cast<const std::array<float, 3> &, const std::array<float, 4> &, float,
                                float>(&View::Axes),
              "pos"_a = std::array<float, 3>{0, 0, 0}, "quat"_a = std::array<float, 4>{0, 0, 0, 1},
-             "axis_len"_a = 15.f, "axis_size"_a = 3.f,
+             "axis_len"_a = 1.f, "axis_size"_a = 1.f,
              "Plot a Axes with translations and quaternions and set asis len and axis size. The "
              "unit of axis length is meters, and the unit of dimension is pixels.")
         .def(

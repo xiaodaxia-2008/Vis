@@ -1,8 +1,11 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # Copyright 2021 RVBUST Inc.
+import sys
+sys.path.append("D:/AppSource/Vis/build/lib")
 
-from RVBUST import Vis
+import PyVis as Vis
+
 from IPython import embed
 
 def ShowArrow():
@@ -121,8 +124,9 @@ if __name__ == "__main__":
     cfg.width = 800
     cfg.height = 600
     cfg.name = "Basics"
-    v = Vis.View(cfg, False)
+    # v = Vis.View(cfg, False)
+    v = Vis.View()
     Basic()
     v.Home()
-    from IPython.terminal import embed; ipshell=embed.InteractiveShellEmbed(config=embed.load_default_config())(local_ns=locals())
+    embed()
     

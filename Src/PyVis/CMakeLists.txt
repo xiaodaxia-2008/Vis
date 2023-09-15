@@ -9,3 +9,17 @@ set_target_properties(PyVis PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/PyVis"
 )
 file(WRITE "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/PyVis/__init__.py" "from .PyVis import *")
+
+install(TARGETS PyVis RUNTIME_DEPENDENCY_SET PyVisRunTime DESTINATION PyVis)
+install(RUNTIME_DEPENDENCY_SET PyVisRunTime
+    PRE_EXCLUDE_REGEXES api-ms-win.* ext-ms-.* wpaxholder.dll
+    POST_EXCLUDE_REGEXES .*Windows[/\\]system32[/\\].*
+    DIRECTORIES ${Python3_RUNTIME_LIBRARY_DIRS} DESTINATION PyVis)
+install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/PyVis/__init__.py DESTINATION PyVis)
+
+add_custom_command(TARGET PyVis POST_BUILD
+    COMMAND pybind11-stubgen PyVis -o ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
+)
+
+file(GLOB_RECURSE pyis ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/*.pyi)
+install(FILES ${pyis} DESTINATION PyVis)

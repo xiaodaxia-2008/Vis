@@ -889,6 +889,11 @@ View::View(const std::string &name, bool shared) {
     }
 
     m_impl->cmd.viewcfg.name = name;
+    m_impl->cmd.viewcfg.use_decoration = true;
+    m_impl->cmd.viewcfg.x = 100;
+    m_impl->cmd.viewcfg.y = 100;
+    m_impl->cmd.viewcfg.width = 800;
+    m_impl->cmd.viewcfg.height = 600;
     m_impl->cmd.type = CommandType_CreateView;
     m_impl->handle = Handle();
     if (Vis3d_Command_Execute(m_impl->pv3, &(m_impl->cmd))) {

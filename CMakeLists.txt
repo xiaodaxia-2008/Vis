@@ -18,6 +18,8 @@ else()
   set(OSG_LIBS osg osgViewer osgGA osgText osgDB osgUtil osgFX)
 endif()
 
+include(GNUInstallDirs)
+
 find_package(Threads REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
@@ -25,3 +27,5 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 add_subdirectory(Externals)
 add_subdirectory(Src)
+
+include(CPack)
