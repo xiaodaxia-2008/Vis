@@ -18,8 +18,11 @@ coloredlogs.install(level="DEBUG", logger=logger, fmt="%(asctime)s %(filename)s:
 
 v = PyVis.View()
 v.Axes()
+v.SetHomePose([1,1,1], [0,0,0], [0,0,1])
+v.Home()
+
 i = 0
-while i < 10000:
+while i < 100:
     points = np.zeros((10000, 3))
     points[:, 0] = np.random.uniform(i - 1, i + 1, 10000)
     points[:, 1] = np.random.uniform(-1, 1, 10000)

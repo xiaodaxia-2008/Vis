@@ -17,6 +17,8 @@ else()
   find_package(osg REQUIRED COMPONENTS osgViewer osgGA osgText osgDB osgUtil osgFX)
   set(OSG_LIBS osg osgViewer osgGA osgText osgDB osgUtil osgFX)
 endif()
+message(STATUS OPENSCENEGRAPH_INCLUDE_DIRS:${OPENSCENEGRAPH_INCLUDE_DIRS})
+message(STATUS OPENSCENEGRAPH_LIBRARIES:${OPENSCENEGRAPH_LIBRARIES})
 
 include(GNUInstallDirs)
 
@@ -27,5 +29,6 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 add_subdirectory(Externals)
 add_subdirectory(Src)
+add_subdirectory(Examples)
 
 include(CPack)
