@@ -8,23 +8,28 @@
 #include <osg/Camera>
 #include <osg/Geode>
 #include <osg/Geometry>
-#include <osg/Light>
-#include <osg/LightModel>
-#include <osg/LightSource>
 #include <osg/LineWidth>
 #include <osg/Material>
+#include <osg/MatrixTransform>
 #include <osg/Point>
 #include <osg/PrimitiveSet>
 #include <osg/Shape>
 #include <osg/ShapeDrawable>
-#include <osgGA/MultiTouchTrackballManipulator>
+#include <osgGA/TrackballManipulator>
 #include <osgViewer/Viewer>
-#include <osgViewer/config/SingleScreen>
-#include <osgViewer/config/SingleWindow>
+
+#include <boost/uuid/uuid_hash.hpp>
+
+#include <unordered_map>
 
 namespace zenvis {
-osg::ref_ptr<osg::Geometry> DrawAxes(const DrawAxesCommand& cmd,
-                                     osgViewer::Viewer* viewer = nullptr) {
+
+inline osg::Matrix MatrixEigenToOsg(const Eigen::Matrix4d& pose) {
+    return osg::Matrix(pose.data());
+}
+
+osg::ref_ptr<osg::MatrixTransform> DrawAxes(const DrawAxesCommand& cmd,
+                                            osgViewer::Viewer* viewer = nullptr) {
     osg::ref_ptr geo = new osg::Geometry();
     auto v = new osg::Vec3Array(6);
     (*v)[0] = osg::Vec3f(0.0f, 0.0f, 0.0f);
@@ -50,11 +55,14 @@ osg::ref_ptr<osg::Geometry> DrawAxes(const DrawAxesCommand& cmd,
     geo->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES, 4, 2));
     geo->getOrCreateStateSet()->setAttributeAndModes(new osg::LineWidth(cmd.axis_size));
     geo->getOrCreateStateSet()->setMode(GL_LIGHTING, osg::StateAttribute::OFF);
-    return geo;
+
+    osg::ref_ptr mt = new osg::MatrixTransform(MatrixEigenToOsg(cmd.pose));
+    mt->addChild(geo);
+    return mt;
 }
 
-osg::ref_ptr<osg::Geometry> DrawPoints(const DrawPointCommand& cmd,
-                                       osgViewer::Viewer* viewer = nullptr) {
+osg::ref_ptr<osg::MatrixTransform> DrawPoints(const DrawPointCommand& cmd,
+                                              osgViewer::Viewer* viewer = nullptr) {
     osg::ref_ptr geo = new osg::Geometry;
     const int n = cmd.xyzs.size() / 3;
     geo->setVertexArray(new osg::Vec3Array(n, reinterpret_cast<const osg::Vec3*>(cmd.xyzs.data())));
@@ -68,7 +76,10 @@ osg::ref_ptr<osg::Geometry> DrawPoints(const DrawPointCommand& cmd,
     // set point size
     if (cmd.point_size != 1.f)
         geo->getOrCreateStateSet()->setAttributeAndModes(new osg::Point(cmd.point_size));
-    return geo;
+
+    osg::ref_ptr mt = new osg::MatrixTransform(MatrixEigenToOsg(cmd.pose));
+    mt->addChild(geo);
+    return mt;
 }
 
 void SetCameraPose(const SetCameraPoseCommand& cmd, osgViewer::Viewer* viewer) {
@@ -77,32 +88,6 @@ void SetCameraPose(const SetCameraPoseCommand& cmd, osgViewer::Viewer* viewer) {
                              osg::Vec3d(cmd.target[0], cmd.target[1], cmd.target[2]),
                              osg::Vec3d(cmd.up[0], cmd.up[1], cmd.up[2]));
 }
-
-struct ViewerCommandVisitor {
-    osgViewer::Viewer* viewer;
-    osg::Geode* root_geode;
-
-    void operator()(const DrawPointCommand& cmd) {
-        auto geo = DrawPoints(cmd, viewer);
-        root_geode->addDrawable(geo);
-    }
-
-    void operator()(const DrawAxesCommand& cmd) {
-        SPDLOG_DEBUG("draw axes");
-        auto geo = DrawAxes(cmd);
-        root_geode->addDrawable(geo);
-        viewer->home();
-    }
-
-    void operator()(const SetCameraPoseCommand& cmd) {
-        SPDLOG_DEBUG("set camera pose");
-        SetCameraPose(cmd, viewer);
-    }
-};
-
-std::atomic_bool ZenViewer::sm_should_exit;
-std::mutex ZenViewer::sm_mutex_cmds;
-std::queue<ViewerCommand> ZenViewer::sm_cmds;
 
 class ExitHandler : public osgGA::GUIEventHandler {
 public:
@@ -119,16 +104,60 @@ protected:
 
 struct ZenViewer::Pimpl {
     osg::ref_ptr<osg::Group> root;
-    osg::ref_ptr<osg::Geode> root_geode;
+    std::unordered_map<boost::uuids::uuid, osg::Node*> node_map;
     std::thread td;
+};
+
+struct ViewerCommandVisitor {
+    osgViewer::Viewer* viewer;
+    ZenViewer::Pimpl& pimpl;
+    using RT = void;
+
+    RT operator()(const DrawPointCommand& cmd) {
+        auto node = DrawPoints(cmd, viewer);
+        pimpl.root->addChild(node);
+        pimpl.node_map[cmd.handle] = node;
+    }
+
+    RT operator()(const DrawAxesCommand& cmd) {
+        auto node = DrawAxes(cmd);
+        pimpl.root->addChild(node);
+        pimpl.node_map[cmd.handle] = node;
+    }
+
+    RT operator()(const SetCameraPoseCommand& cmd) { SetCameraPose(cmd, viewer); }
+
+    RT operator()(const DeleteNodeCommand& cmd) {
+        if (pimpl.node_map.contains(cmd.handle)) {
+            pimpl.root->removeChild(pimpl.node_map[cmd.handle]);
+            pimpl.node_map.erase(cmd.handle);
+        } else {
+            SPDLOG_WARN("cannot find node with handle {}", cmd.handle);
+        }
+    }
+
+    RT operator()(const SetNodePoseCommand& cmd) {
+        if (pimpl.node_map.contains(cmd.handle)) {
+            static_cast<osg::MatrixTransform*>(pimpl.node_map[cmd.handle])
+                ->setMatrix(MatrixEigenToOsg(cmd.pose));
+        } else {
+            SPDLOG_WARN("cannot find node with handle {}", cmd.handle);
+        }
+    }
 };
 
 ZenViewer::ZenViewer() {
     m_pimpl = std::make_unique<Pimpl>();
     m_pimpl->root = new osg::Group;
-    m_pimpl->root_geode = new osg::Geode;
-    m_pimpl->root->addChild(m_pimpl->root_geode);
     sm_should_exit = true;
+}
+
+void ZenViewer::PushCommand(ViewerCommand&& cmd) {
+    sm_cmds.push(std::move(cmd));
+}
+
+void ZenViewer::PushCommand(const ViewerCommand& cmd) {
+    sm_cmds.push(cmd);
 }
 
 void ZenViewer::Show(bool blocking) {
@@ -157,7 +186,7 @@ void ZenViewer::RunViewer() {
         viewer.frame();
         while (!sm_should_exit) {
             if (!sm_cmds.empty()) {
-                std::visit(ViewerCommandVisitor{&viewer, m_pimpl->root_geode}, sm_cmds.front());
+                std::visit(ViewerCommandVisitor{&viewer, *m_pimpl}, sm_cmds.front());
                 {
                     std::lock_guard<std::mutex> lock{sm_mutex_cmds};
                     sm_cmds.pop();
@@ -179,4 +208,9 @@ ZenViewer::~ZenViewer() {
         m_pimpl->td.join();
     SPDLOG_DEBUG("destruct ZenViewer at {}", fmt::ptr(this));
 }
+
+std::atomic_bool ZenViewer::sm_should_exit;
+std::mutex ZenViewer::sm_mutex_cmds;
+std::queue<ViewerCommand> ZenViewer::sm_cmds;
+
 }  // namespace zenvis
