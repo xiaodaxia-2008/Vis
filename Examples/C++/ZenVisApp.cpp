@@ -16,8 +16,8 @@ int main() {
     std::this_thread::sleep_for(std::chrono::seconds(5));
     std::vector<float> points, colors{1.f, 0.f, 0.f, 1.f};
     std::mt19937 rd;
-    std::uniform_real_distribution<float> dist(0, 1);
-    for (int i = 0; i < 10000; i++) {
+    std::uniform_real_distribution<float> dist(0, 10);
+    for (int i = 0; i < 10'000'000; i++) {
         points.push_back(dist(rd));
         points.push_back(dist(rd));
         points.push_back(dist(rd));
